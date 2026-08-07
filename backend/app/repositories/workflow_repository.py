@@ -11,6 +11,7 @@ class WorkflowRepository:
         db: Session,
         user_request: str,
     ) -> Workflow:
+
         workflow = Workflow(
             user_request=user_request,
             status="PENDING",
@@ -23,12 +24,13 @@ class WorkflowRepository:
         return workflow
 
     @staticmethod
-    def get_by_id(
+    def get(
         db: Session,
         workflow_id: str,
     ) -> Workflow | None:
-        statement = select(Workflow).where(
+
+        stmt = select(Workflow).where(
             Workflow.id == workflow_id
         )
 
-        return db.scalar(statement)
+        return db.scalar(stmt)
