@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -25,6 +26,11 @@ class Workflow(Base):
         String(50),
         nullable=False,
         default="PENDING",
+    )
+
+    plan: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON,
+        nullable=True,
     )
 
     final_summary: Mapped[str | None] = mapped_column(

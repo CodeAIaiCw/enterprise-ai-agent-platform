@@ -25,13 +25,18 @@ async def create_plan(
     payload: PlannerRequest,
     db: Session = Depends(get_db),
 ):
-
     workflow = WorkflowRepository.create(
         db=db,
         user_request=payload.request,
     )
 
     plan = await planner.plan(payload.request)
+
+    WorkflowRepository.save_plan(
+        db=db,
+        workflow=workflow,
+        plan=plan.model_dump(),
+    )
 
     return WorkflowResponse(
         workflow_id=workflow.id,
