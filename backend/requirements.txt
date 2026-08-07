@@ -6,3 +6,6 @@ structlog
 sqlalchemy
 psycopg[binary]
 pgvector
+langgraph
+langchain-openai
+openai

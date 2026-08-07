@@ -3,13 +3,11 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
+from app.api.planner import router as planner_router
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.logging import configure_logging
-
-# Import model so SQLAlchemy registers it
 from app.models.workflow import Workflow  # noqa: F401
-
 
 configure_logging()
 logger = structlog.get_logger()
@@ -37,6 +35,8 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+app.include_router(planner_router)
 
 
 @app.get("/api/v1/live")
