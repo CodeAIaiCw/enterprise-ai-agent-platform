@@ -2,3 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
+structlog
+sqlalchemy
+psycopg[binary]
+pgvector
