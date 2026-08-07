@@ -1,27 +1,42 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
 import structlog
+from fastapi import FastAPI
 
 from app.core.config import settings
+from app.core.database import Base, engine
 from app.core.logging import configure_logging
+
+# Import model so SQLAlchemy registers it
+from app.models.workflow import Workflow  # noqa: F401
 
 
 configure_logging()
-
 logger = structlog.get_logger()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(
+        "application_starting",
+        environment=settings.environment,
+        version=settings.app_version,
+    )
+
+    Base.metadata.create_all(bind=engine)
+
+    logger.info("database_initialized")
+
+    yield
+
+    logger.info("application_stopping")
+
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(
-        "application_started",
-        environment=settings.environment,
-        version=settings.app_version,
-    )
 
 
 @app.get("/api/v1/live")
