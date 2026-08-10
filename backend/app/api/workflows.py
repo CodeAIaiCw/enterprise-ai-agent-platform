@@ -18,7 +18,10 @@ router = APIRouter(
 )
 
 
-@router.get("/{workflow_id}", response_model=WorkflowResponse)
+@router.get(
+    "/{workflow_id}",
+    response_model=WorkflowResponse,
+)
 async def get_workflow(
     workflow_id: UUID,
     db: Session = Depends(get_db),
@@ -68,6 +71,7 @@ async def get_workflow_logs(
 
     return {
         "workflow_id": str(workflow_id),
+        "status": workflow.status,
         "logs": [
             {
                 "id": log.id,
@@ -102,6 +106,12 @@ async def run_workflow(
             detail="Workflow not found",
         )
 
+    if not workflow.plan:
+        raise HTTPException(
+            status_code=400,
+            detail="Workflow has no stored execution plan",
+        )
+
     state = {
         "workflow_id": str(workflow_id),
         "execution_results": [],
@@ -129,11 +139,28 @@ async def run_workflow(
     )
 
     if interrupts:
+        WorkflowRepository.update_status(
+            db,
+            workflow,
+            "AWAITING_APPROVAL",
+        )
+
         return {
             "workflow_id": str(workflow_id),
             "status": "AWAITING_APPROVAL",
             "interrupt": interrupts[0].value,
         }
+
+    final_status = result.get(
+        "status",
+        workflow.status,
+    )
+
+    WorkflowRepository.update_status(
+        db,
+        workflow,
+        final_status,
+    )
 
     return result
 
@@ -154,6 +181,21 @@ async def approve_workflow(
             detail="Workflow not found",
         )
 
+    if workflow.status != "AWAITING_APPROVAL":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Workflow is not awaiting approval. "
+                f"Current status: {workflow.status}"
+            ),
+        )
+
+    WorkflowRepository.update_status(
+        db,
+        workflow,
+        "APPROVED",
+    )
+
     config = {
         "configurable": {
             "thread_id": str(workflow_id),
@@ -162,12 +204,36 @@ async def approve_workflow(
 
     execution_graph = await get_execution_graph()
 
-    result = await execution_graph.ainvoke(
-        Command(resume=True),
-        config=config,
-    )
+    try:
+        result = await execution_graph.ainvoke(
+            Command(resume=True),
+            config=config,
+        )
 
-    return result
+        final_status = result.get(
+            "status",
+            "COMPLETED",
+        )
+
+        WorkflowRepository.update_status(
+            db,
+            workflow,
+            final_status,
+        )
+
+        return result
+
+    except Exception as exc:
+        WorkflowRepository.update_status(
+            db,
+            workflow,
+            "FAILED",
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post("/{workflow_id}/reject")
@@ -186,6 +252,15 @@ async def reject_workflow(
             detail="Workflow not found",
         )
 
+    if workflow.status != "AWAITING_APPROVAL":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Workflow is not awaiting approval. "
+                f"Current status: {workflow.status}"
+            ),
+        )
+
     config = {
         "configurable": {
             "thread_id": str(workflow_id),
@@ -199,4 +274,13 @@ async def reject_workflow(
         config=config,
     )
 
-    return result
+    WorkflowRepository.update_status(
+        db,
+        workflow,
+        "REJECTED",
+    )
+
+    return {
+        **result,
+        "status": "REJECTED",
+    }
