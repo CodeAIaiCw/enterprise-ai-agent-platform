@@ -3,10 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.agents.executor import ExecutionAgent
 from app.api.dependencies import get_db
 from app.repositories.workflow_repository import WorkflowRepository
-from app.schemas.planner import ExecutionPlan
+from app.services.execution_service import ExecutionService
 
 
 router = APIRouter(
@@ -14,7 +13,7 @@ router = APIRouter(
     tags=["Execution"],
 )
 
-executor = ExecutionAgent()
+execution_service = ExecutionService()
 
 
 @router.post("/{workflow_id}")
@@ -39,45 +38,20 @@ async def execute_workflow(
             detail="Workflow has no stored execution plan",
         )
 
-    WorkflowRepository.update_status(
-        db,
-        workflow,
-        "RUNNING",
-    )
-
     try:
-        plan = ExecutionPlan.model_validate(
-            workflow.plan
-        )
-
-        results = await executor.execute(plan)
-
-        WorkflowRepository.save_execution_results(
-            db,
-            workflow,
-            results,
-        )
-
-        WorkflowRepository.update_status(
-            db,
-            workflow,
-            "COMPLETED",
+        results = await execution_service.execute_workflow(
+            db=db,
+            workflow=workflow,
         )
 
         return {
             "workflow_id": workflow.id,
-            "status": "COMPLETED",
+            "status": workflow.status,
             "results": results,
         }
 
     except Exception as exc:
-        WorkflowRepository.update_status(
-            db,
-            workflow,
-            "FAILED",
-        )
-
         raise HTTPException(
             status_code=500,
             detail=str(exc),
-        )
+        ) from exc
