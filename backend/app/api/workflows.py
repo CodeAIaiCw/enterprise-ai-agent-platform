@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from langgraph.types import Command
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
@@ -16,10 +16,6 @@ router = APIRouter(
     prefix="/api/v1/workflows",
     tags=["Workflows"],
 )
-
-
-class RunWorkflowRequest(BaseModel):
-    approved: bool = False
 
 
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
@@ -93,7 +89,6 @@ async def get_workflow_logs(
 @router.post("/{workflow_id}/run")
 async def run_workflow(
     workflow_id: UUID,
-    request: RunWorkflowRequest,
     db: Session = Depends(get_db),
 ):
     workflow = WorkflowRepository.get(
@@ -109,14 +104,93 @@ async def run_workflow(
 
     state = {
         "workflow_id": str(workflow_id),
-        "approved": request.approved,
-        "blocked": False,
         "execution_results": [],
         "validation_passed": False,
         "status": workflow.status,
         "error": None,
     }
 
-    result = await execution_graph.ainvoke(state)
+    config = {
+        "configurable": {
+            "thread_id": str(workflow_id),
+        }
+    }
+
+    result = await execution_graph.ainvoke(
+        state,
+        config=config,
+    )
+
+    interrupts = result.get(
+        "__interrupt__",
+        (),
+    )
+
+    if interrupts:
+        return {
+            "workflow_id": str(workflow_id),
+            "status": "AWAITING_APPROVAL",
+            "interrupt": interrupts[0].value,
+        }
+
+    return result
+
+
+@router.post("/{workflow_id}/approve")
+async def approve_workflow(
+    workflow_id: UUID,
+    db: Session = Depends(get_db),
+):
+    workflow = WorkflowRepository.get(
+        db,
+        str(workflow_id),
+    )
+
+    if workflow is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Workflow not found",
+        )
+
+    config = {
+        "configurable": {
+            "thread_id": str(workflow_id),
+        }
+    }
+
+    result = await execution_graph.ainvoke(
+        Command(resume=True),
+        config=config,
+    )
+
+    return result
+
+
+@router.post("/{workflow_id}/reject")
+async def reject_workflow(
+    workflow_id: UUID,
+    db: Session = Depends(get_db),
+):
+    workflow = WorkflowRepository.get(
+        db,
+        str(workflow_id),
+    )
+
+    if workflow is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Workflow not found",
+        )
+
+    config = {
+        "configurable": {
+            "thread_id": str(workflow_id),
+        }
+    }
+
+    result = await execution_graph.ainvoke(
+        Command(resume=False),
+        config=config,
+    )
 
     return result

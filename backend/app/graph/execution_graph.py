@@ -1,4 +1,6 @@
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 from app.core.database import SessionLocal
 from app.graph.state import WorkflowState
@@ -9,32 +11,32 @@ from app.services.execution_service import ExecutionService
 execution_service = ExecutionService()
 
 
-async def security_node(
+async def approval_node(
     state: WorkflowState,
 ) -> dict:
-    """
-    Prevent execution unless the workflow has been approved.
-    """
+    decision = interrupt(
+        {
+            "type": "approval_required",
+            "workflow_id": state["workflow_id"],
+            "message": "Approve execution of this enterprise workflow?",
+        }
+    )
 
-    if not state["approved"]:
+    if decision is True:
         return {
-            "blocked": True,
-            "status": "AWAITING_APPROVAL",
+            "status": "APPROVED",
+            "error": None,
         }
 
     return {
-        "blocked": False,
-        "status": "APPROVED",
+        "status": "REJECTED",
+        "error": "Workflow rejected by human reviewer",
     }
 
 
 async def execution_node(
     state: WorkflowState,
 ) -> dict:
-    """
-    Execute the persisted workflow using the existing ExecutionService.
-    """
-
     db = SessionLocal()
 
     try:
@@ -75,10 +77,6 @@ async def execution_node(
 async def validation_node(
     state: WorkflowState,
 ) -> dict:
-    """
-    Deterministically validate that all executed tools succeeded.
-    """
-
     if state.get("error"):
         return {
             "validation_passed": False,
@@ -112,11 +110,11 @@ async def validation_node(
     }
 
 
-def route_after_security(
+def route_after_approval(
     state: WorkflowState,
 ) -> str:
-    if state["blocked"]:
-        return "blocked"
+    if state["status"] == "REJECTED":
+        return "end"
 
     return "execute"
 
@@ -134,8 +132,8 @@ def build_execution_graph():
     graph = StateGraph(WorkflowState)
 
     graph.add_node(
-        "security",
-        security_node,
+        "approval",
+        approval_node,
     )
 
     graph.add_node(
@@ -150,15 +148,15 @@ def build_execution_graph():
 
     graph.add_edge(
         START,
-        "security",
+        "approval",
     )
 
     graph.add_conditional_edges(
-        "security",
-        route_after_security,
+        "approval",
+        route_after_approval,
         {
-            "blocked": END,
             "execute": "execute",
+            "end": END,
         },
     )
 
@@ -176,7 +174,11 @@ def build_execution_graph():
         END,
     )
 
-    return graph.compile()
+    checkpointer = InMemorySaver()
+
+    return graph.compile(
+        checkpointer=checkpointer
+    )
 
 
 execution_graph = build_execution_graph()
