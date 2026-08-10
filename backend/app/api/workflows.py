@@ -5,7 +5,7 @@ from langgraph.types import Command
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
-from app.graph.execution_graph import execution_graph
+from app.graph.execution_graph import get_execution_graph
 from app.repositories.execution_log_repository import ExecutionLogRepository
 from app.repositories.workflow_repository import WorkflowRepository
 from app.schemas.planner import ExecutionPlan
@@ -116,6 +116,8 @@ async def run_workflow(
         }
     }
 
+    execution_graph = await get_execution_graph()
+
     result = await execution_graph.ainvoke(
         state,
         config=config,
@@ -158,6 +160,8 @@ async def approve_workflow(
         }
     }
 
+    execution_graph = await get_execution_graph()
+
     result = await execution_graph.ainvoke(
         Command(resume=True),
         config=config,
@@ -187,6 +191,8 @@ async def reject_workflow(
             "thread_id": str(workflow_id),
         }
     }
+
+    execution_graph = await get_execution_graph()
 
     result = await execution_graph.ainvoke(
         Command(resume=False),

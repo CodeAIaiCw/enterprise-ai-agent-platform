@@ -1,4 +1,4 @@
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
@@ -8,7 +8,14 @@ from app.repositories.workflow_repository import WorkflowRepository
 from app.services.execution_service import ExecutionService
 
 
+CHECKPOINT_DB_URI = (
+    "postgresql://postgres:postgres@localhost:5432/enterprise_ai"
+)
+
 execution_service = ExecutionService()
+
+_execution_graph = None
+_checkpointer_context = None
 
 
 async def approval_node(
@@ -128,7 +135,7 @@ def route_after_execution(
     return "validate"
 
 
-def build_execution_graph():
+def build_graph_builder():
     graph = StateGraph(WorkflowState)
 
     graph.add_node(
@@ -174,11 +181,28 @@ def build_execution_graph():
         END,
     )
 
-    checkpointer = InMemorySaver()
-
-    return graph.compile(
-        checkpointer=checkpointer
-    )
+    return graph
 
 
-execution_graph = build_execution_graph()
+async def get_execution_graph():
+    global _execution_graph
+    global _checkpointer_context
+
+    if _execution_graph is None:
+        _checkpointer_context = (
+            AsyncPostgresSaver.from_conn_string(
+                CHECKPOINT_DB_URI
+            )
+        )
+
+        checkpointer = await _checkpointer_context.__aenter__()
+
+        await checkpointer.setup()
+
+        builder = build_graph_builder()
+
+        _execution_graph = builder.compile(
+            checkpointer=checkpointer
+        )
+
+    return _execution_graph
