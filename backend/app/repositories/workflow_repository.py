@@ -48,3 +48,32 @@ class WorkflowRepository:
         db.refresh(workflow)
 
         return workflow
+
+    @staticmethod
+    def update_status(
+        db: Session,
+        workflow: Workflow,
+        status: str,
+    ) -> Workflow:
+        workflow.status = status
+
+        db.add(workflow)
+        db.commit()
+        db.refresh(workflow)
+
+        return workflow
+
+    @staticmethod
+    def save_execution_results(
+        db: Session,
+        workflow: Workflow,
+        results: list[dict],
+    ) -> Workflow:
+        workflow.execution_results = {
+            "results": results
+        }
+        db.add(workflow)
+        db.commit()
+        db.refresh(workflow)
+
+        return workflow

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.planner import router as planner_router
 from app.api.workflows import router as workflow_router
+from app.api.execution import router as execution_router
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.logging import configure_logging
@@ -39,6 +40,7 @@ app = FastAPI(
 
 app.include_router(planner_router)
 app.include_router(workflow_router)
+app.include_router(execution_router)
 
 
 @app.get("/api/v1/live")

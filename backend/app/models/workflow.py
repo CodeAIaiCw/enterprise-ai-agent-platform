@@ -43,3 +43,7 @@ class Workflow(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    execution_results: Mapped[dict[str, Any] | None] = mapped_column(
+    JSON,
+    nullable=True,
+)
