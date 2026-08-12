@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.agents.planner import PlannerAgent
 from app.api.dependencies import get_db
 from app.repositories.workflow_repository import WorkflowRepository
 from app.schemas.workflow import WorkflowResponse
+from app.services.planning_service import planning_service
 
 
 router = APIRouter(
@@ -13,14 +13,15 @@ router = APIRouter(
     tags=["Planner"],
 )
 
-planner = PlannerAgent()
-
 
 class PlannerRequest(BaseModel):
     request: str
 
 
-@router.post("", response_model=WorkflowResponse)
+@router.post(
+    "",
+    response_model=WorkflowResponse,
+)
 async def create_plan(
     payload: PlannerRequest,
     db: Session = Depends(get_db),
@@ -30,7 +31,10 @@ async def create_plan(
         user_request=payload.request,
     )
 
-    plan = await planner.plan(payload.request)
+    plan = await planning_service.create_plan(
+        db=db,
+        user_request=payload.request,
+    )
 
     WorkflowRepository.save_plan(
         db=db,

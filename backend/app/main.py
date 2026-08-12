@@ -9,8 +9,9 @@ from app.api.execution import router as execution_router
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.logging import configure_logging
-from app.models.workflow import Workflow  # noqa: F401
 from app.models.execution_log import ExecutionLog  # noqa: F401
+from app.models.knowledge_document import KnowledgeDocument  # noqa: F401
+from app.models.workflow import Workflow  # noqa: F401
 
 configure_logging()
 logger = structlog.get_logger()

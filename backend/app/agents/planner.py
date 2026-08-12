@@ -1,3 +1,5 @@
+from typing import Any
+
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
@@ -9,14 +11,18 @@ You are an enterprise workflow planning agent.
 
 Convert the user's business request into a safe, ordered execution plan.
 
+You will receive a list of available enterprise capabilities retrieved
+from enterprise documentation.
+
 Rules:
-- Return only actions required to satisfy the request.
+- Only use capabilities supplied in the retrieved capability list.
+- Do not invent systems, actions, tools, or API capabilities.
+- Preserve logical execution order.
 - Use lowercase snake_case action names.
-- Classify each action as READ, WRITE, NOTIFY, or VALIDATE.
-- WRITE actions should require human approval.
-- Do not claim that actions have already executed.
-- Do not invent credentials, customer IDs, API responses, or execution results.
-- Preserve logical dependencies between workflow steps.
+- Classify actions as READ, WRITE, NOTIFY, or VALIDATE.
+- WRITE actions require approval.
+- Do not claim anything has already executed.
+- Do not invent credentials, IDs, API responses, or results.
 """
 
 
@@ -35,11 +41,31 @@ class PlannerAgent:
                 ExecutionPlan
             )
 
-    async def plan(self, user_request: str) -> ExecutionPlan:
+    async def plan(
+        self,
+        user_request: str,
+    ) -> ExecutionPlan:
+        return await self.plan_with_capabilities(
+            user_request=user_request,
+            capabilities=[],
+        )
+
+    async def plan_with_capabilities(
+        self,
+        user_request: str,
+        capabilities: list[dict[str, Any]],
+    ) -> ExecutionPlan:
         if self.mode == "mock":
-            return self._mock_plan(user_request)
+            return self._mock_plan_from_capabilities(
+                user_request=user_request,
+                capabilities=capabilities,
+            )
 
         if self.mode == "openai":
+            capability_context = self._format_capabilities(
+                capabilities
+            )
+
             return await self.structured_llm.ainvoke(
                 [
                     {
@@ -48,7 +74,12 @@ class PlannerAgent:
                     },
                     {
                         "role": "user",
-                        "content": user_request,
+                        "content": (
+                            f"Business request:\n"
+                            f"{user_request}\n\n"
+                            f"Available capabilities:\n"
+                            f"{capability_context}"
+                        ),
                     },
                 ]
             )
@@ -57,53 +88,69 @@ class PlannerAgent:
             f"Unsupported planner mode: {self.mode}"
         )
 
-    def _mock_plan(self, user_request: str) -> ExecutionPlan:
+    def _mock_plan_from_capabilities(
+        self,
+        user_request: str,
+        capabilities: list[dict[str, Any]],
+    ) -> ExecutionPlan:
         request = user_request.lower()
 
         steps: list[PlanStep] = []
         step_id = 1
 
-        if "salesforce" in request and (
-            "create" in request or "customer" in request
-        ):
-            steps.append(
-                PlanStep(
-                    step_id=step_id,
-                    system="Salesforce",
-                    action="create_customer",
-                    description="Create the customer record in Salesforce.",
-                    action_type="WRITE",
-                    requires_approval=True,
-                )
+        for capability in capabilities:
+            system = str(
+                capability.get("system", "")
             )
-            step_id += 1
 
-        if "sap" in request and (
-            "verify" in request or "customer" in request
-        ):
-            steps.append(
-                PlanStep(
-                    step_id=step_id,
-                    system="SAP",
-                    action="verify_customer",
-                    description="Verify the customer record in SAP.",
-                    action_type="VALIDATE",
-                    requires_approval=False,
-                )
+            action = str(
+                capability.get("action", "")
             )
-            step_id += 1
 
-        if "slack" in request or "notify" in request:
+            action_type = str(
+                capability.get("action_type", "READ")
+            )
+
+            requires_approval = bool(
+                capability.get(
+                    "requires_approval",
+                    False,
+                )
+            )
+
+            description = str(
+                capability.get(
+                    "description",
+                    "",
+                )
+            )
+
+            if not system or not action:
+                continue
+
+            if not self._capability_matches_request(
+                request=request,
+                system=system,
+                action=action,
+                description=description,
+            ):
+                continue
+
             steps.append(
                 PlanStep(
                     step_id=step_id,
-                    system="Slack",
-                    action="send_notification",
-                    description="Notify the relevant team in Slack.",
-                    action_type="NOTIFY",
-                    requires_approval=False,
+                    system=system,
+                    action=action,
+                    description=(
+                        f"Execute retrieved capability "
+                        f"{system}.{action}."
+                    ),
+                    action_type=action_type,
+                    requires_approval=requires_approval,
                 )
             )
+
+            step_id += 1
 
         if not steps:
             steps.append(
@@ -112,12 +159,102 @@ class PlannerAgent:
                     system="Unknown",
                     action="clarify_request",
                     description=(
-                        "The request could not be mapped to a supported "
-                        "enterprise workflow."
+                        "No retrieved enterprise capability "
+                        "matched the request."
                     ),
                     action_type="READ",
                     requires_approval=False,
                 )
             )
 
-        return ExecutionPlan(steps=steps)
+        return ExecutionPlan(
+            steps=self._order_steps(steps)
+        )
+
+    @staticmethod
+    def _capability_matches_request(
+        request: str,
+        system: str,
+        action: str,
+        description: str,
+    ) -> bool:
+        searchable = (
+            f"{system} {action} {description}"
+        ).lower()
+
+        request_terms = {
+            term
+            for term in request.replace(",", " ").split()
+            if len(term) > 3
+        }
+
+        if not request_terms:
+            return False
+
+        return any(
+            term in searchable
+            for term in request_terms
+        )
+
+    @staticmethod
+    def _order_steps(
+        steps: list[PlanStep],
+    ) -> list[PlanStep]:
+        priority = {
+            "WRITE": 1,
+            "READ": 2,
+            "VALIDATE": 3,
+            "NOTIFY": 4,
+        }
+
+        ordered = sorted(
+            steps,
+            key=lambda step: priority.get(
+                step.action_type,
+                99,
+            ),
+        )
+
+        return [
+            step.model_copy(
+                update={"step_id": index}
+            )
+            for index, step in enumerate(
+                ordered,
+                start=1,
+            )
+        ]
+
+    @staticmethod
+    def _format_capabilities(
+        capabilities: list[dict[str, Any]],
+    ) -> str:
+        if not capabilities:
+            return "No enterprise capabilities were retrieved."
+
+        lines = []
+
+        for index, capability in enumerate(
+            capabilities,
+            start=1,
+        ):
+            lines.append(
+                "\n".join(
+                    [
+                        f"{index}. System: "
+                        f"{capability.get('system')}",
+                        f"   Action: "
+                        f"{capability.get('action')}",
+                        f"   Tool: "
+                        f"{capability.get('tool_name')}",
+                        f"   Type: "
+                        f"{capability.get('action_type')}",
+                        f"   Requires approval: "
+                        f"{capability.get('requires_approval')}",
+                        f"   Similarity: "
+                        f"{capability.get('similarity', 0):.4f}",
+                    ]
+                )
+            )
+
+        return "\n\n".join(lines)

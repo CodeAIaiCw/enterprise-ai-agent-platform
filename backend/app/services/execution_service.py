@@ -18,11 +18,12 @@ class ExecutionService:
         db: Session,
         workflow: Workflow,
     ) -> list[dict]:
-
         if not workflow.plan:
             raise ValueError("Workflow has no execution plan")
 
-        plan = ExecutionPlan.model_validate(workflow.plan)
+        plan = ExecutionPlan.model_validate(
+            workflow.plan
+        )
 
         WorkflowRepository.update_status(
             db,
@@ -41,6 +42,10 @@ class ExecutionService:
                     step.action,
                 )
 
+                input_payload = {
+                    "description": step.description,
+                }
+
                 if tool_name is None:
                     duration_ms = (
                         time.perf_counter() - start
@@ -53,9 +58,7 @@ class ExecutionService:
                         system=step.system,
                         tool_name="unsupported",
                         status="FAILED",
-                        input_payload={
-                            "description": step.description
-                        },
+                        input_payload=input_payload,
                         execution_time_ms=duration_ms,
                         error="No matching tool registered",
                     )
@@ -65,14 +68,35 @@ class ExecutionService:
                         f"{step.system}.{step.action}"
                     )
 
-                tool = self.executor.get_tool(tool_name)
+                tool = self.executor.get_tool(
+                    tool_name
+                )
 
-                input_payload = {
-                    "description": step.description
-                }
+                if tool is None:
+                    duration_ms = (
+                        time.perf_counter() - start
+                    ) * 1000
+
+                    ExecutionLogRepository.create(
+                        db=db,
+                        workflow_id=workflow.id,
+                        step_id=step.step_id,
+                        system=step.system,
+                        tool_name=tool_name,
+                        status="FAILED",
+                        input_payload=input_payload,
+                        execution_time_ms=duration_ms,
+                        error="Tool not found in registry",
+                    )
+
+                    raise ValueError(
+                        f"Tool not found: {tool_name}"
+                    )
 
                 try:
-                    result = await tool.execute(input_payload)
+                    result = await tool.execute(
+                        input_payload
+                    )
 
                     duration_ms = (
                         time.perf_counter() - start
@@ -137,6 +161,7 @@ class ExecutionService:
                 workflow,
                 "FAILED",
             )
+
             raise
 
     @staticmethod
@@ -144,20 +169,26 @@ class ExecutionService:
         system: str,
         action: str,
     ) -> str | None:
-        key = (
-            system.lower(),
-            action.lower(),
-        )
-
         mapping = {
-            ("salesforce", "create_customer"):
-                "salesforce.create_customer",
+            (
+                "salesforce",
+                "create_customer",
+            ): "salesforce.create_customer",
 
-            ("sap", "verify_customer"):
-                "sap.verify_customer",
+            (
+                "sap",
+                "verify_customer",
+            ): "sap.verify_customer",
 
-            ("slack", "send_notification"):
-                "slack.send_notification",
+            (
+                "slack",
+                "send_notification",
+            ): "slack.send_notification",
         }
 
-        return mapping.get(key)
+        return mapping.get(
+            (
+                system.lower(),
+                action.lower(),
+            )
+        )
