@@ -3,7 +3,11 @@ from typing import Any
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
-from app.schemas.planner import ExecutionPlan, PlanStep
+from app.schemas.planner import (
+    ExecutionPlan,
+    PlanSource,
+    PlanStep,
+)
 
 
 SYSTEM_PROMPT = """
@@ -37,8 +41,10 @@ class PlannerAgent:
                 temperature=0,
             )
 
-            self.structured_llm = self.llm.with_structured_output(
-                ExecutionPlan
+            self.structured_llm = (
+                self.llm.with_structured_output(
+                    ExecutionPlan
+                )
             )
 
     async def plan(
@@ -102,26 +108,19 @@ class PlannerAgent:
             system = str(
                 capability.get("system", "")
             )
-
             action = str(
                 capability.get("action", "")
             )
-
             action_type = str(
                 capability.get("action_type", "READ")
             )
-
+            description = str(
+                capability.get("description", "")
+            )
             requires_approval = bool(
                 capability.get(
                     "requires_approval",
                     False,
-                )
-            )
-
-            description = str(
-                capability.get(
-                    "description",
-                    "",
                 )
             )
 
@@ -136,6 +135,21 @@ class PlannerAgent:
             ):
                 continue
 
+            source = PlanSource(
+                document_id=str(
+                    capability.get("document_id", "")
+                ),
+                source_name=str(
+                    capability.get("source_name", system)
+                ),
+                title=str(
+                    capability.get("title", "")
+                ),
+                similarity=float(
+                    capability.get("similarity", 0.0)
+                ),
+            )
+
             steps.append(
                 PlanStep(
                     step_id=step_id,
@@ -147,6 +161,7 @@ class PlannerAgent:
                     ),
                     action_type=action_type,
                     requires_approval=requires_approval,
+                    sources=[source],
                 )
             )
 
@@ -164,6 +179,7 @@ class PlannerAgent:
                     ),
                     action_type="READ",
                     requires_approval=False,
+                    sources=[],
                 )
             )
 
@@ -251,6 +267,8 @@ class PlannerAgent:
                         f"{capability.get('action_type')}",
                         f"   Requires approval: "
                         f"{capability.get('requires_approval')}",
+                        f"   Source: "
+                        f"{capability.get('title')}",
                         f"   Similarity: "
                         f"{capability.get('similarity', 0):.4f}",
                     ]

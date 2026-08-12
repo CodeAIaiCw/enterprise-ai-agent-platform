@@ -23,13 +23,17 @@ class PlanningService:
         capabilities = []
 
         for result in retrieval_results:
-            metadata = result.document.metadata_json or {}
+            document = result.document
+            metadata = document.metadata_json or {}
 
             capabilities.append(
                 {
+                    "document_id": document.id,
+                    "source_name": document.source_name,
+                    "title": document.title,
                     "system": metadata.get(
                         "system",
-                        result.document.source_name,
+                        document.source_name,
                     ),
                     "action": metadata.get(
                         "action",
@@ -47,7 +51,7 @@ class PlanningService:
                         "requires_approval",
                         False,
                     ),
-                    "description": result.document.content,
+                    "description": document.content,
                     "similarity": result.similarity,
                 }
             )
