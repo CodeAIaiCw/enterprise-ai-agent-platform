@@ -1,3 +1,4 @@
+import os
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
@@ -8,8 +9,9 @@ from app.repositories.workflow_repository import WorkflowRepository
 from app.services.execution_service import ExecutionService
 
 
-CHECKPOINT_DB_URI = (
-    "postgresql://postgres:postgres@localhost:5432/enterprise_ai"
+CHECKPOINT_DB_URI = os.getenv(
+    "CHECKPOINT_DB_URI",
+    "postgresql://postgres:postgres@localhost:5432/enterprise_ai",
 )
 
 execution_service = ExecutionService()
