@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import "./App.css";
 
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://127.0.0.1:8000/api/v1";
+  "https://enterprise-ai-agent-platform-production.up.railway.app/api/v1";
 
 type PlanSource = {
   document_id: string;
