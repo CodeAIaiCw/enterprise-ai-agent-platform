@@ -2,16 +2,15 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL=https://enterprise-ai-agent-platform-production.up.railway.app/api/v1
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ARG CACHE_BUST=20260813-frontend-api-fix
 
 COPY package.json package-lock.json ./
-
 RUN npm ci
 
 COPY . .
 
-RUN echo "Building frontend with VITE_API_BASE_URL=${VITE_API_BASE_URL}" \
+RUN echo "Frontend cache bust: ${CACHE_BUST}" \
+    && echo "Building fresh frontend bundle" \
     && npm run build
 
 
