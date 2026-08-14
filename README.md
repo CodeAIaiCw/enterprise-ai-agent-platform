@@ -1,1428 +1,283 @@
-\# Enterprise AI Agent Platform
+# Enterprise AI Agent Platform
 
+A production-deployed, governed multi-agent workflow orchestration platform that converts natural-language business requests into grounded, auditable enterprise workflows.
 
+The platform combines retrieval-augmented generation (RAG), PostgreSQL + pgvector, LangGraph orchestration, human-in-the-loop approval, deterministic tool execution, and execution validation.
 
-> A governed multi-agent orchestration platform for planning, approving, executing, and auditing enterprise workflows.
+## Live Application
 
+Frontend:
+https://intuitive-reflection-production-428c.up.railway.app/
 
+Backend API:
+https://enterprise-ai-agent-platform-production.up.railway.app/
 
-The Enterprise AI Agent Platform converts natural-language business requests into grounded, source-attributed execution plans across enterprise systems.
+Health:
+https://enterprise-ai-agent-platform-production.up.railway.app/api/v1/live
 
+## What It Does
 
+A user provides a business objective such as:
 
-Instead of allowing an AI agent to execute arbitrary actions, the platform retrieves approved capabilities from an enterprise knowledge base, constructs a grounded workflow, pauses sensitive operations for human approval, executes approved tools through a durable LangGraph workflow, and records auditable execution results.
+> Onboard a new client and alert the team after checking the customer record.
 
+The platform:
 
+1. Retrieves relevant enterprise capabilities using vector similarity search.
+2. Builds a source-grounded execution plan.
+3. Determines which operations require human approval.
+4. Pauses execution before sensitive WRITE operations.
+5. Executes approved enterprise tool adapters.
+6. Records an auditable execution trace.
+7. Validates the final workflow outcome.
 
-\---
-
-
-
-\## Highlights
-
-
-
-\- Semantic capability retrieval with FastEmbed and pgvector
-
-\- Retrieval-grounded workflow planning
-
-\- Source attribution and similarity evidence
-
-\- Multi-system enterprise orchestration
-
-\- Durable LangGraph execution and checkpoints
-
-\- Human-in-the-loop approval for sensitive operations
-
-\- Deterministic execution validation
-
-\- PostgreSQL audit logging
-
-\- REST API built with FastAPI
-
-\- React/TypeScript showcase interface
-
-\- Full-stack Docker deployment
-
-\- Automated API and workflow integration tests
-
-
-
-\---
-
-
-
-\## Demo Workflow
-
-
-
-A user submits a business request such as:
-
-
-
-> Onboard a new customer, verify the customer record, and notify the team.
-
-
-
-The platform retrieves relevant enterprise capabilities and produces a grounded plan:
-
-
-
-```text
+Example workflow:
 
 Business Request
+→ RAG Retrieval
+→ Salesforce
+→ Human Approval
+→ SAP Validation
+→ Slack Notification
+→ Validation
+→ Completed
 
-&#x20;      │
-
-&#x20;      ▼
-
-Semantic Retrieval
-
-&#x20;      │
-
-&#x20;      ├── Salesforce.create\_customer
-
-&#x20;      ├── SAP.verify\_customer
-
-&#x20;      └── Slack.send\_notification
-
-&#x20;      │
-
-&#x20;      ▼
-
-Grounded Planner
-
-&#x20;      │
-
-&#x20;      ▼
-
-LangGraph Workflow
-
-&#x20;      │
-
-&#x20;      ▼
-
-Human Approval
-
-&#x20;      │
-
-&#x20;      ▼
-
-Enterprise Tool Execution
-
-&#x20;      │
-
-&#x20;      ▼
-
-Validation + Audit Logs
-
-&#x20;      │
-
-&#x20;      ▼
-
-COMPLETED
-
-```
-
-
-
-Example plan:
-
-
-
-| Step | System | Action | Type | Approval |
-
-|---|---|---|---|---|
-
-| 1 | Salesforce | `create\_customer` | WRITE | Required |
-
-| 2 | SAP | `verify\_customer` | VALIDATE | Automatic |
-
-| 3 | Slack | `send\_notification` | NOTIFY | Automatic |
-
-
-
-Sensitive `WRITE` operations are prevented from executing until explicit human approval is received.
-
-
-
-\---
-
-
-
-\## Architecture
-
-
+## Architecture
 
 ```text
-
-┌──────────────────────────────────────────────────────────────┐
-
-│                     React / TypeScript                       │
-
-│                        Frontend                              │
-
-└──────────────────────────────┬───────────────────────────────┘
-
-&#x20;                              │
-
-&#x20;                              │ REST API
-
-&#x20;                              ▼
-
-┌──────────────────────────────────────────────────────────────┐
-
-│                         FastAPI                              │
-
-│                                                              │
-
-│   ┌───────────────────┐       ┌──────────────────────────┐   │
-
-│   │ Grounded Planner  │◄──────│ Semantic Retriever       │   │
-
-│   └─────────┬─────────┘       │ FastEmbed + pgvector     │   │
-
-│             │                 └────────────┬─────────────┘   │
-
-│             ▼                              │                 │
-
-│   ┌───────────────────┐                    │                 │
-
-│   │     LangGraph     │                    │                 │
-
-│   │   Orchestration   │                    │                 │
-
-│   └─────────┬─────────┘                    │                 │
-
-│             │                              │                 │
-
-│             ▼                              │                 │
-
-│   ┌───────────────────┐                    │                 │
-
-│   │ Human Approval    │                    │                 │
-
-│   │      HITL         │                    │                 │
-
-│   └─────────┬─────────┘                    │                 │
-
-│             │                              │                 │
-
-│             ▼                              │                 │
-
-│   ┌─────────────────────────────────────┐  │                 │
-
-│   │ Enterprise Tool Execution           │  │                 │
-
-│   │ Salesforce → SAP → Slack            │  │                 │
-
-│   └─────────────────┬───────────────────┘  │                 │
-
-│                     │                      │                 │
-
-│                     ▼                      │                 │
-
-│             Audit + Validation             │                 │
-
-└─────────────────────┬──────────────────────┴─────────────────┘
-
-&#x20;                     │
-
-&#x20;                     ▼
-
-┌──────────────────────────────────────────────────────────────┐
-
-│                 PostgreSQL + pgvector                        │
-
-│                                                              │
-
-│  Workflows • Knowledge • Embeddings • Checkpoints • Logs    │
-
-└──────────────────────────────────────────────────────────────┘
-
-```
-
-
-
-A polished architecture graphic will also be included in `docs/`.
-
-
-
-\---
-
-
-
-\## Retrieval-Grounded Planning
-
-
-
-The planner does not rely only on model knowledge.
-
-
-
-Enterprise capabilities are stored as knowledge documents with metadata describing:
-
-
-
-\- system
-
-\- action
-
-\- tool name
-
-\- action type
-
-\- approval requirements
-
-
-
-Each document receives a 384-dimensional embedding.
-
-
-
-When a user submits a request, the platform performs semantic similarity search through PostgreSQL using pgvector.
-
-
-
-Example retrieval:
-
-
-
-```text
-
-0.6164  Salesforce  Create Customer in Salesforce
-
-0.6143  Slack       Send Workflow Notification to Slack
-
-0.5394  SAP         Verify Customer in SAP
-
-```
-
-
-
-The retrieved capabilities become the evidence used to construct the execution plan.
-
-
-
-Every planned step exposes its source document and similarity score in the UI.
-
-
-
-\---
-
-
-
-\## Human-in-the-Loop Governance
-
-
-
-Enterprise agents should not perform sensitive operations without controls.
-
-
-
-Actions are classified by operation type.
-
-
+┌───────────────────────────┐
+│      React + Vite UI      │
+└─────────────┬─────────────┘
+              │ HTTPS
+              ▼
+┌───────────────────────────┐
+│        FastAPI API        │
+│                           │
+│ Planner / Workflow /      │
+│ Execution / Knowledge     │
+└─────────────┬─────────────┘
+              │
+       ┌──────┴──────┐
+       ▼             ▼
+┌─────────────┐  ┌───────────────┐
+│ RAG Layer   │  │   LangGraph   │
+│ FastEmbed   │  │ Orchestration │
+└──────┬──────┘  └───────┬───────┘
+       │                 │
+       ▼                 ▼
+┌─────────────────────────────────┐
+│ PostgreSQL + pgvector           │
+│                                 │
+│ Knowledge / Workflows /         │
+│ Checkpoints / Execution Logs    │
+└─────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────┐
+│ Enterprise Tool Adapters        │
+│ Salesforce | SAP | Slack        │
+└─────────────────────────────────┘
+
+Core Capabilities
+Grounded RAG Planning
+
+Enterprise capability documentation is embedded and stored in PostgreSQL using pgvector.
+
+At planning time, the platform embeds the business request and performs vector similarity retrieval to select relevant enterprise capabilities.
+
+The planner therefore operates against retrieved capability metadata rather than selecting arbitrary tools.
+
+Human-in-the-Loop Governance
+
+Operations that modify enterprise data can be marked as requiring approval.
 
 For example:
 
+Salesforce.create_customer
+Action type: WRITE
+Approval: Required
 
+LangGraph pauses workflow execution before the protected operation and resumes after approval.
 
-```text
+Enterprise Tool Execution
 
-WRITE       → approval required
+The project demonstrates an extensible adapter architecture for enterprise systems including:
 
-VALIDATE    → automatic
+Salesforce — customer creation
+SAP — customer verification
+Slack — workflow notification
 
-NOTIFY      → automatic
+The current adapters provide deterministic demonstration behavior and can be replaced with authenticated production integrations.
 
-```
+Auditable Execution
 
+Each workflow captures execution evidence including:
 
+selected capabilities
+execution plan
+approval requirements
+tool calls
+tool inputs and outputs
+execution status
+execution timing
+validation result
+Example
 
-When LangGraph encounters an approval-required operation, workflow execution pauses and persists its state.
+Input:
 
+Onboard a new client and alert the team after checking the customer record.
 
+Retrieved capabilities:
 
-```text
+Salesforce — Create Customer in Salesforce
+SAP        — Verify Customer in SAP
+Slack      — Send Workflow Notification to Slack
 
-PENDING
+Grounded plan:
 
-&#x20;  │
+1. Salesforce.create_customer
+   WRITE — Human approval required
 
-&#x20;  ▼
 
-RUN
+2. SAP.verify_customer
+   VALIDATE — Automatic
 
-&#x20;  │
 
-&#x20;  ▼
+3. Slack.send_notification
+   NOTIFY — Automatic
 
-AWAITING\_APPROVAL
+Result:
 
-&#x20;  │
-
-&#x20;  ├──────── REJECT ───────► REJECTED
-
-&#x20;  │
-
-&#x20;  └──────── APPROVE
-
-&#x20;               │
-
-&#x20;               ▼
-
-&#x20;            EXECUTE
-
-&#x20;               │
-
-&#x20;               ▼
-
-&#x20;            VALIDATE
-
-&#x20;               │
-
-&#x20;               ▼
-
-&#x20;            COMPLETED
-
-```
-
-
-
-Rejected workflows do not execute the protected enterprise tools.
-
-
-
-\---
-
-
-
-\## Durable Workflow Orchestration
-
-
-
-LangGraph manages workflow state and resumable execution.
-
-
-
-PostgreSQL checkpoint persistence allows workflows to stop at governance boundaries and resume after an approval decision.
-
-
-
-The platform therefore separates:
-
-
-
-```text
-
-Planning
-
-&#x20;   ↓
-
-Governance
-
-&#x20;   ↓
-
-Execution
-
-```
-
-
-
-rather than treating an AI response as permission to immediately modify enterprise systems.
-
-
-
-\---
-
-
-
-\## Auditable Execution
-
-
-
-Every executed tool call produces an execution log containing information such as:
-
-
-
-\- workflow identifier
-
-\- execution step
-
-\- enterprise system
-
-\- tool name
-
-\- execution status
-
-\- execution duration
-
-\- returned result
-
-\- errors
-
-
-
-Example:
-
-
-
-```text
-
-Salesforce  salesforce.create\_customer   SUCCESS
-
-SAP         sap.verify\_customer          SUCCESS
-
-Slack       slack.send\_notification      SUCCESS
-
-```
-
-
-
-The showcase UI exposes these logs through the execution timeline and agent trace.
-
-
-
-\---
-
-
-
-\## Validation
-
-
-
-Successful tool execution alone does not automatically imply a successful workflow.
-
-
-
-After execution, the platform performs deterministic validation of the results.
-
-
-
-A successful workflow reaches:
-
-
-
-```text
-
-Workflow status: COMPLETED
-
-Executed steps:  3
-
-Validation:      PASSED
-
-```
-
-
-
-This separates execution from outcome verification.
-
-
-
-\---
-
-
-
-\## Agent Trace
-
-
-
-The frontend exposes the major decision stages involved in a workflow:
-
-
-
-```text
-
-RETRIEVAL
-
-&#x20;   ↓
-
-PLANNER
-
-&#x20;   ↓
-
-GOVERNANCE
-
-&#x20;   ↓
-
-EXECUTION
-
-&#x20;   ↓
-
-VALIDATION
-
-```
-
-
-
-This makes the agent's behavior inspectable rather than presenting only a final AI-generated answer.
-
-
-
-\---
-
-
-
-\## Technology Stack
-
-
-
-\### Frontend
-
-
-
-\- React
-
-\- TypeScript
-
-\- Vite
-
-\- nginx
-
-
-
-\### Backend
-
-
-
-\- Python
-
-\- FastAPI
-
-\- Pydantic
-
-\- SQLAlchemy
-
-\- Structlog
-
-
-
-\### Agent Orchestration
-
-
-
-\- LangGraph
-
-\- PostgreSQL checkpoint persistence
-
-
-
-\### Retrieval
-
-
-
-\- FastEmbed
-
-\- pgvector
-
-\- 384-dimensional embeddings
-
-\- semantic similarity search
-
-
-
-\### Data
-
-
-
-\- PostgreSQL 16
-
-\- pgvector
-
-
-
-\### Infrastructure
-
-
-
-\- Docker
-
-\- Docker Compose
-
-
-
-\### Testing
-
-
-
-\- pytest
-
-\- FastAPI TestClient
-
-\- workflow integration tests
-
-
-
-\---
-
-
-
-\## Project Structure
-
-
-
-```text
-
+Workflow Status: COMPLETED
+Executed Steps: 3
+Validation: PASSED
+Technology Stack
+Layer	Technology
+Frontend	React, TypeScript, Vite
+Backend	FastAPI, Python
+Orchestration	LangGraph
+Database	PostgreSQL
+Vector Search	pgvector
+Embeddings	FastEmbed
+ORM	SQLAlchemy
+Deployment	Railway
+Containers	Docker
+Web Server	Nginx
+Repository Structure
 enterprise-ai-agent-platform/
-
-│
-
 ├── backend/
-
 │   ├── app/
-
 │   │   ├── api/
-
+│   │   ├── agents/
 │   │   ├── core/
-
-│   │   ├── graph/
-
 │   │   ├── models/
-
 │   │   ├── rag/
-
+│   │   ├── schemas/
 │   │   ├── services/
-
 │   │   └── tools/
-
-│   │
-
 │   ├── scripts/
-
 │   ├── tests/
-
-│   ├── Dockerfile
-
-│   └── requirements.txt
-
+│   └── Dockerfile
 │
-
 ├── frontend/
-
 │   ├── src/
-
-│   ├── public/
-
 │   ├── Dockerfile
-
-│   ├── nginx.conf
-
-│   └── package.json
-
+│   └── nginx.conf
 │
-
 ├── docs/
-
-├── docker/
-
-├── terraform/
-
 ├── docker-compose.yml
-
 └── README.md
-
-```
-
-
-
-\---
-
-
-
-\## Running with Docker
-
-
-
-\### Prerequisites
-
-
-
-Install:
-
-
-
-\- Docker Desktop
-
-\- Docker Compose
-
-
-
-Clone the repository and enter the project directory:
-
-
-
-```bash
-
-git clone <repository-url>
-
-cd enterprise-ai-agent-platform
-
-```
-
-
-
-Start the complete stack:
-
-
-
-```bash
-
-docker compose up --build
-
-```
-
-
-
-Docker Compose starts:
-
-
-
-```text
-
-enterprise-ai-postgres
-
-enterprise-ai-backend
-
-enterprise-ai-frontend
-
-```
-
-
-
-Check service status:
-
-
-
-```bash
-
-docker compose ps
-
-```
-
-
-
-The PostgreSQL service should report a healthy status.
-
-
-
-\### Application
-
-
-
-Frontend:
-
-
-
-```text
-
-http://localhost:5173
-
-```
-
-
-
-Backend API:
-
-
-
-```text
-
-http://localhost:8000
-
-```
-
-
-
-Swagger API documentation:
-
-
-
-```text
-
-http://localhost:8000/docs
-
-```
-
-
-
-Liveness endpoint:
-
-
-
-```text
-
-http://localhost:8000/api/v1/live
-
-```
-
-
-
-Stop the platform with:
-
-
-
-```bash
-
-docker compose down
-
-```
-
-
-
-\---
-
-
-
-\## API
-
-
-
-Core endpoints include:
-
-
-
-```text
-
-POST  /api/v1/planner
-
-
-
-GET   /api/v1/workflows/{workflow\_id}
-
-GET   /api/v1/workflows/{workflow\_id}/logs
-
-
-
-POST  /api/v1/workflows/{workflow\_id}/run
-
-POST  /api/v1/workflows/{workflow\_id}/approve
-
-POST  /api/v1/workflows/{workflow\_id}/reject
-
-
-
-POST  /api/v1/execute/{workflow\_id}
-
-
-
-GET   /api/v1/knowledge/{document\_id}
-
-
-
-GET   /api/v1/live
-
-```
-
-
-
-Interactive API documentation is available through FastAPI Swagger UI.
-
-
-
-\---
-
-
-
-\## Example Lifecycle
-
-
-
-\### 1. Generate a plan
-
-
-
-The user submits a natural-language business request.
-
-
-
-The platform retrieves matching capabilities and creates a source-attributed plan.
-
-
-
-Initial state:
-
-
-
-```text
-
-PENDING
-
-```
-
-
-
-\### 2. Run the workflow
-
-
-
-```text
-
-POST /api/v1/workflows/{workflow\_id}/run
-
-```
-
-
-
-A sensitive write operation causes the graph to pause:
-
-
-
-```text
-
-AWAITING\_APPROVAL
-
-```
-
-
-
-\### 3. Approve
-
-
-
-```text
-
-POST /api/v1/workflows/{workflow\_id}/approve
-
-```
-
-
-
-LangGraph resumes from its persisted checkpoint.
-
-
-
-\### 4. Execute
-
-
-
-The approved workflow invokes:
-
-
-
-```text
-
-Salesforce.create\_customer
-
-&#x20;       ↓
-
-SAP.verify\_customer
-
-&#x20;       ↓
-
-Slack.send\_notification
-
-```
-
-
-
-\### 5. Validate
-
-
-
-The platform validates the results and records execution logs.
-
-
-
-Final state:
-
-
-
-```text
-
-COMPLETED
-
-```
-
-
-
-\---
-
-
-
-\## Automated Tests
-
-
-
-The backend includes automated coverage for the planner, knowledge API, governance lifecycle, execution, validation, and audit behavior.
-
-
-
-Run:
-
-
-
-```bash
-
+Local Development
+Backend
 cd backend
 
-pytest -v
 
-```
+python -m venv .venv
+source .venv/bin/activate
 
 
+pip install -r requirements.txt
 
-The integration suite verifies scenarios including:
+Configure the required environment variables and start the API:
 
+uvicorn app.main:app --reload
+Frontend
+cd frontend
+npm install
+npm run dev
+Knowledge Seeding
 
+Seed the enterprise capability knowledge base:
 
-```text
+cd backend
+PYTHONPATH=. python scripts/seed_knowledge.py
 
-planner → PENDING
+The seeder is idempotent and skips capability documents that already exist.
 
+Backfill missing embeddings when required:
 
+PYTHONPATH=. python scripts/backfill_embeddings.py
+Production Deployment
 
-run
+The application is deployed as separate Railway services:
 
-→ AWAITING\_APPROVAL
+React/Vite frontend
+        │
+        │ HTTPS
+        ▼
+FastAPI backend
+        │
+        ▼
+Railway PostgreSQL + pgvector
 
+Both frontend and backend are containerized independently.
 
+Engineering Highlights
 
-approve
+This project demonstrates:
 
-→ enterprise execution
+retrieval-grounded agent planning
+semantic enterprise capability discovery
+durable workflow orchestration
+human approval gates
+deterministic tool execution
+PostgreSQL vector retrieval
+auditability and execution tracing
+backend/frontend service separation
+Dockerized production deployment
+production CORS configuration
+idempotent knowledge ingestion
+Current Scope
 
-→ validation
+Salesforce, SAP, and Slack are implemented as enterprise tool adapters for demonstrating orchestration behavior. They do not currently perform authenticated writes against live Salesforce, SAP, or Slack accounts.
 
-→ COMPLETED
+The architecture is designed so those adapters can be replaced with real API integrations without changing the planner and orchestration model.
 
+Future Improvements
+OAuth-backed Salesforce integration
+SAP API integration
+Slack API integration
+authentication and RBAC
+tenant-specific knowledge bases
+streaming agent events
+expanded approval policies
+observability and distributed tracing
+automated evaluation of retrieval quality
+CI/CD integration tests
+License
 
+This project is intended as an engineering and portfolio demonstration.
 
-reject
 
-→ REJECTED
 
-→ no protected tool execution
+Because the actual URLs need to be navigable in the final README, keep them as normal Markdown/raw links **inside GitHub**, even though I don't render raw URLs directly in chat.
 
 
+One thing I deliberately changed in the positioning: **don't claim the project currently integrates with real Salesforce/SAP/Slack accounts**. Your successful workflow proves the orchestration/adapters work, but we should describe them as deterministic enterprise adapters until we've actually connected authenticated APIs.
 
-completed workflow
 
-→ second approval rejected
+After replacing the README, run:
 
-```
 
-
-
-\---
-
-
-
-\## Design Decisions
-
-
-
-\### Retrieval before planning
-
-
-
-The platform retrieves enterprise capabilities before creating the workflow plan.
-
-
-
-This reduces unsupported tool selection and gives each planned action traceable evidence.
-
-
-
-\### Explicit governance boundary
-
-
-
-Approval is part of the execution graph rather than a frontend-only confirmation dialog.
-
-
-
-The workflow itself cannot continue past the protected operation until approval occurs.
-
-
-
-\### Durable checkpoints
-
-
-
-Approval may occur well after planning.
-
-
-
-Persisting LangGraph checkpoints allows the workflow to resume rather than reconstructing execution state.
-
-
-
-\### PostgreSQL as the operational foundation
-
-
-
-PostgreSQL stores application data while pgvector adds semantic retrieval and the LangGraph checkpointer adds durable agent state.
-
-
-
-This keeps the architecture understandable while demonstrating multiple enterprise AI data patterns.
-
-
-
-\### Deterministic validation
-
-
-
-The platform does not use an LLM to decide whether mocked enterprise operations succeeded.
-
-
-
-Execution results are checked deterministically.
-
-
-
-\### Inspectability
-
-
-
-Retrieval evidence, plans, governance decisions, execution logs, outputs, and validation state are visible in the interface.
-
-
-
-The goal is governed and observable agent execution rather than opaque autonomy.
-
-
-
-\---
-
-
-
-\## Current Enterprise Tool Adapters
-
-
-
-The showcase currently demonstrates three enterprise capability adapters:
-
-
-
-\### Salesforce
-
-
-
-```text
-
-salesforce.create\_customer
-
-```
-
-
-
-Creates a simulated Salesforce customer record.
-
-
-
-\### SAP
-
-
-
-```text
-
-sap.verify\_customer
-
-```
-
-
-
-Validates the simulated customer record.
-
-
-
-\### Slack
-
-
-
-```text
-
-slack.send\_notification
-
-```
-
-
-
-Simulates delivery of a workflow notification.
-
-
-
-The adapters intentionally use deterministic showcase behavior so the orchestration, governance, retrieval, checkpointing, and audit architecture can be demonstrated without requiring external enterprise credentials.
-
-
-
-\---
-
-
-
-\## Current Scope
-
-
-
-This repository is an engineering showcase rather than a production enterprise deployment.
-
-
-
-Current limitations include:
-
-
-
-\- enterprise tool adapters are simulated
-
-\- authentication and RBAC are not yet implemented
-
-\- secrets management is development-oriented
-
-\- retrieval knowledge is seeded for the demonstration
-
-\- production observability and distributed tracing are future work
-
-
-
-These boundaries keep the showcase focused on the agent architecture itself.
-
-
-
-\---
-
-
-
-\## Roadmap
-
-
-
-Potential extensions include:
-
-
-
-\- real Salesforce integration
-
-\- real Slack integration
-
-\- authentication
-
-\- role-based access control
-
-\- approval roles and policies
-
-\- organization/workspace isolation
-
-\- secrets management
-
-\- distributed tracing
-
-\- additional enterprise systems
-
-\- richer retrieval corpora
-
-\- production cloud deployment
-
-\- CI/CD
-
-\- policy-as-code governance
-
-
-
-\---
-
-
-
-\## What This Project Demonstrates
-
-
-
-This project explores a practical question in enterprise agent engineering:
-
-
-
-> How can an AI system move from natural-language intent to enterprise action without giving the model unrestricted execution authority?
-
-
-
-The architecture combines:
-
-
-
-```text
-
-Semantic Retrieval
-
-&#x20;      +
-
-Grounded Planning
-
-&#x20;      +
-
-Durable Orchestration
-
-&#x20;      +
-
-Human Governance
-
-&#x20;      +
-
-Tool Execution
-
-&#x20;      +
-
-Auditability
-
-&#x20;      +
-
-Validation
-
-```
-
-
-
-to create a controlled enterprise agent workflow.
-
-
-
-\---
-
-
-
-\## Status
-
-
-
-```text
-
-Core orchestration        COMPLETE
-
-Semantic retrieval        COMPLETE
-
-Grounded planning         COMPLETE
-
-Source attribution        COMPLETE
-
-Human approval            COMPLETE
-
-Durable checkpoints       COMPLETE
-
-Enterprise tool execution COMPLETE
-
-Audit logging             COMPLETE
-
-Validation                COMPLETE
-
-Automated tests           COMPLETE
-
-Dockerized full stack     COMPLETE
-
-Showcase UI               COMPLETE
-
-Public deployment         NEXT
-
-```
-
-
-
-\---
-
-
-
-\## License
-
-
-
-This project is currently intended as a portfolio and engineering showcase. Add an explicit open-source license before distributing or accepting external contributions.
-
+```powershell
+git diff -- README.m
