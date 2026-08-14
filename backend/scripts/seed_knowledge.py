@@ -1,6 +1,8 @@
-from app.core.database import SessionLocal
-from app.rag.ingestion import knowledge_ingestion_service
+from sqlalchemy import select
 
+from app.core.database import SessionLocal
+from app.models.knowledge_document import KnowledgeDocument
+from app.rag.ingestion import knowledge_ingestion_service
 
 DOCUMENTS = [
     {
@@ -116,6 +118,20 @@ def main() -> None:
 
     try:
         for document in DOCUMENTS:
+            existing = db.scalar(
+                select(KnowledgeDocument).where(
+                    KnowledgeDocument.source_name == document["source_name"],
+                    KnowledgeDocument.title == document["title"],
+                )
+            )
+
+            if existing:
+                print(
+                    f"Skipped existing: {existing.source_name} "
+                    f"- {existing.title}"
+                )
+                continue
+
             created = knowledge_ingestion_service.ingest_text(
                 db=db,
                 source_type=document["source_type"],
