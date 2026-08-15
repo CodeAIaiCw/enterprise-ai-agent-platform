@@ -11,6 +11,7 @@ type PlanSource = {
   similarity: number;
 };
 
+
 type PlanStep = {
   step_id: number;
   system: string;
@@ -298,63 +299,100 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">AI</div>
+  <a className="brand brand-link" href="#overview">
+    <div className="brand-mark">AI</div>
 
-          <div>
-            <div className="brand-title">Enterprise Agent Platform</div>
+    <div>
+      <div className="brand-title">Enterprise Agent Platform</div>
+      <div className="brand-subtitle">
+        Governed multi-agent workflow orchestration
+      </div>
+    </div>
+  </a>
 
-            <div className="brand-subtitle">
-              Governed multi-agent workflow orchestration
-            </div>
-          </div>
-        </div>
+  <nav className="topnav" aria-label="Primary navigation">
+    <a href="#overview">Overview</a>
+    <a href="#workflow">Workflow</a>
+    <a href="#architecture">Architecture</a>
+    <a
+      href="https://github.com/CodeAIaiCw/enterprise-ai-agent-platform"
+      target="_blank"
+      rel="noreferrer"
+    >
+      GitHub ↗
+    </a>
+  </nav>
 
-        <div className="topbar-right">
-          <div className="environment-dot" />
-          <span>Development</span>
+  <div className="topbar-right">
+    <div className="environment">
+      <div className="environment-dot" />
+      <span>Development</span>
+    </div>
 
-          <div
-            className={`status-pill status-${workflowStatus.toLowerCase()}`}
-          >
-            {workflowStatus.replaceAll("_", " ")}
-          </div>
-        </div>
-      </header>
+    <div
+      className={`status-pill status-${workflowStatus.toLowerCase()}`}
+    >
+      {workflowStatus.replaceAll("_", " ")}
+    </div>
+
+    <a className="nav-cta" href="#workflow">
+      Launch workflow
+    </a>
+  </div>
+</header>
 
       <main className="dashboard">
-        <section className="hero">
-          <div>
-            <div className="eyebrow">ENTERPRISE AI ORCHESTRATION</div>
+        <section className="hero" id="overview">
+  <div className="hero-copy">
+    <div className="eyebrow">ENTERPRISE AI ORCHESTRATION</div>
 
-            <h1>
-              Plan, approve, and execute
-              <span> enterprise workflows.</span>
-            </h1>
+    <h1>
+      Plan, approve, and execute
+      <span> enterprise workflows.</span>
+    </h1>
 
-            <p>
-              Grounded planning with pgvector retrieval, durable LangGraph
-              orchestration, human approval, and auditable tool execution.
-            </p>
-          </div>
+    <p>
+      Ground enterprise AI actions in organizational knowledge,
+      gate sensitive operations with human approval, and retain
+      a complete audit trail from request to execution.
+    </p>
 
-          <div className="hero-stats">
-            <div className="stat">
-              <strong>3</strong>
-              <span>Connected systems</span>
-            </div>
+    <div className="hero-actions">
+      <a className="primary-button hero-primary" href="#workflow">
+        Launch workflow →
+      </a>
 
-            <div className="stat">
-              <strong>RAG</strong>
-              <span>Grounded planning</span>
-            </div>
+      <a className="ghost-button" href="#architecture">
+        View architecture
+      </a>
+    </div>
 
-            <div className="stat">
-              <strong>HITL</strong>
-              <span>Human approval</span>
-            </div>
-          </div>
-        </section>
+    <div className="hero-tech">
+      <span>FastAPI</span>
+      <span>LangGraph</span>
+      <span>PostgreSQL</span>
+      <span>pgvector</span>
+      <span>FastEmbed</span>
+    </div>
+  </div>
+
+  <div className="hero-stats">
+    <div className="stat">
+      <strong>3</strong>
+      <span>Connected systems</span>
+    </div>
+
+    <div className="stat">
+      <strong>RAG</strong>
+      <span>Grounded planning</span>
+    </div>
+
+    <div className="stat">
+      <strong>HITL</strong>
+      <span>Human approval</span>
+    </div>
+  </div>
+</section>
 
         {error && (
           <div className="error-banner">
@@ -364,7 +402,7 @@ function App() {
           </div>
         )}
 
-        <section className="request-card panel">
+        <section className="request-card panel" id="workflow">
           <div className="section-heading">
             <div>
               <span className="section-number">01</span>
@@ -715,7 +753,7 @@ function App() {
                               <span>Verified</span>
 
                               <strong>
-                                {Boolean(result.verified) ? "Yes" : "No"}
+                          {result.verified ? "Yes" : "No"}
                               </strong>
                             </div>
                           )}
@@ -725,7 +763,7 @@ function App() {
                               <span>Notification delivered</span>
 
                               <strong>
-                                {Boolean(result.delivered) ? "Yes" : "No"}
+                               {result.delivered ? "Yes" : "No"}
                               </strong>
                             </div>
                           )}
@@ -914,7 +952,7 @@ function App() {
     </div>
   </section>
 )}
-        <section className="architecture-section">
+        <section className="architecture-section" id="architecture">
   <div className="section-heading architecture-heading">
     <div>
       <span className="section-number">06</span>
