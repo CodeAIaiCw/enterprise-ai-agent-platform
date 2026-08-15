@@ -12,6 +12,27 @@ router = APIRouter(
     tags=["Knowledge"],
 )
 
+@router.get("")
+async def list_knowledge_documents(
+    db: Session = Depends(get_db),
+):
+    documents = KnowledgeRepository.list_all(db)
+
+    return {
+        "count": len(documents),
+        "documents": [
+            {
+                "document_id": document.id,
+                "source_type": document.source_type,
+                "source_name": document.source_name,
+                "title": document.title,
+                "metadata": document.metadata_json,
+                "embedded": document.embedding is not None,
+                "created_at": document.created_at,
+            }
+            for document in documents
+        ],
+    }
 
 @router.get("/{document_id}")
 async def get_knowledge_document(
