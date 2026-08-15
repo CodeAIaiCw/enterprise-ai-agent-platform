@@ -63,6 +63,18 @@ jobs:
             -d enterprise_ai \
             -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
+      - name: Seed enterprise knowledge
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: python scripts/seed_knowledge.py
+
+      - name: Backfill knowledge embeddings
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: python scripts/backfill_embeddings.py
+
       - name: Run backend tests
         working-directory: backend
         run: pytest -v
