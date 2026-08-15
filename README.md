@@ -15,6 +15,28 @@ https://enterprise-ai-agent-platform-production.up.railway.app/
 Health:
 https://enterprise-ai-agent-platform-production.up.railway.app/api/v1/live
 
+## Demo
+
+### Grounded Enterprise Workflow
+
+The platform retrieves enterprise capabilities and generates a source-grounded execution plan across Salesforce, SAP, and Slack.
+
+![Grounded execution plan](docs/screenshots/02-grounded-plan.png)
+
+### Human-in-the-Loop Approval
+
+Sensitive `WRITE` operations pause before execution and require explicit human approval.
+
+![Human approval workflow](docs/screenshots/03-approval.png)
+
+### Auditable Execution
+
+After approval, the workflow executes registered enterprise adapters and records the execution trace and validation outcome.
+
+![Completed workflow](docs/screenshots/04-completed.png)
+
+**Result:** `COMPLETED` · **Executed Steps:** `3` · **Validation:** `PASSED`
+
 ## What It Does
 
 A user provides a business objective such as:
