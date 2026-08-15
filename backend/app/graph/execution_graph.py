@@ -199,8 +199,6 @@ async def get_execution_graph():
 
         checkpointer = await _checkpointer_context.__aenter__()
 
-        await checkpointer.setup()
-
         builder = build_graph_builder()
 
         _execution_graph = builder.compile(

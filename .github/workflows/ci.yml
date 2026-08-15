@@ -68,6 +68,13 @@ jobs:
           PYTHONPATH: .
         run: |
           python -c "from app.core.database import Base, engine; import app.models.knowledge_document, app.models.workflow, app.models.execution_log; Base.metadata.create_all(bind=engine)"
+      
+      - name: Initialize LangGraph checkpoints
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: python scripts/init_checkpointer.py
+      
       - name: Seed enterprise knowledge
         working-directory: backend
         env:
