@@ -62,7 +62,12 @@ jobs:
             -U postgres \
             -d enterprise_ai \
             -c "CREATE EXTENSION IF NOT EXISTS vector;"
-
+      - name: Initialize database schema
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: |
+          python -c "from app.core.database import Base, engine; import app.models.knowledge_document, app.models.workflow, app.models.execution_log; Base.metadata.create_all(bind=engine)"
       - name: Seed enterprise knowledge
         working-directory: backend
         env:
