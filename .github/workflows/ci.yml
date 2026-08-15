@@ -79,10 +79,11 @@ jobs:
         env:
           PYTHONPATH: .
         run: python scripts/backfill_embeddings.py
-
+      
       - name: Run backend tests
         working-directory: backend
-        run: pytest -v
+        timeout-minutes: 5
+        run: pytest -vv -s --maxfail=1
 
   frontend:
     name: Frontend checks
