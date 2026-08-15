@@ -1987,3 +1987,70 @@ html {
     width: 100%;
   }
 }
+/* Knowledge card override */
+
+.knowledge-section .knowledge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.knowledge-section button.knowledge-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 220px;
+  padding: 20px;
+  border: 1px solid #263244;
+  border-radius: 12px;
+  background: #0a101d;
+  color: #e2e8f0;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+}
+
+.knowledge-section button.knowledge-card:hover:not(:disabled) {
+  border-color: rgba(99, 102, 241, 0.65);
+  background: #0e1625;
+  transform: translateY(-2px);
+}
+
+.knowledge-section .knowledge-card-top {
+  width: 100%;
+}
+
+.knowledge-section .knowledge-card h3 {
+  width: 100%;
+  margin: 0 0 12px;
+  color: #f8fafc;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.knowledge-section .knowledge-tool {
+  width: 100%;
+  margin-bottom: 22px;
+  color: #818cf8;
+}
+
+.knowledge-section .knowledge-card-footer {
+  display: flex;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid #202c3e;
+  justify-content: space-between;
+}
+
+.knowledge-section .knowledge-health,
+.knowledge-section .knowledge-approval {
+  font-size: 10px;
+}
+
+@media (max-width: 900px) {
+  .knowledge-section .knowledge-grid {
+    grid-template-columns: 1fr;
+  }
+}

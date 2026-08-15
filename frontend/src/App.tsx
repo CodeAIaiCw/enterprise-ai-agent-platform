@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const API_BASE =
@@ -82,6 +82,21 @@ type KnowledgeDocument = {
   created_at: string;
 };
 
+type KnowledgeListDocument = {
+  document_id: string;
+  source_type: string;
+  source_name: string;
+  title: string;
+  metadata: Record<string, unknown>;
+  embedded: boolean;
+  created_at: string;
+};
+
+type KnowledgeListResponse = {
+  count: number;
+  documents: KnowledgeListDocument[];
+};
+
 const DEFAULT_REQUEST =
   "Onboard a new client and alert the team after checking the customer record.";
 
@@ -93,6 +108,10 @@ function App() {
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [selectedSource, setSelectedSource] =
     useState<KnowledgeDocument | null>(null);
+  const [knowledgeDocuments, setKnowledgeDocuments] = useState<
+  KnowledgeListDocument[]
+  >([]);
+const [loadingKnowledge, setLoadingKnowledge] = useState(true);
 
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [runningWorkflow, setRunningWorkflow] = useState(false);
@@ -286,7 +305,38 @@ function App() {
       setLoadingSource(false);
     }
   }
+useEffect(() => {
+  let cancelled = false;
 
+  async function loadKnowledge() {
+    try {
+      const response = await fetch(`${API_BASE}/knowledge`);
+      const data = await parseResponse<KnowledgeListResponse>(response);
+
+      if (!cancelled) {
+        setKnowledgeDocuments(data.documents);
+      }
+    } catch (err) {
+      if (!cancelled) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load enterprise knowledge.",
+        );
+      }
+    } finally {
+      if (!cancelled) {
+        setLoadingKnowledge(false);
+      }
+    }
+  }
+
+  void loadKnowledge();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
   function resetDemo() {
     setWorkflow(null);
     setWorkflowStatus("IDLE");
@@ -295,7 +345,7 @@ function App() {
     setError(null);
     setSelectedSource(null);
   }
-
+ 
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -312,6 +362,7 @@ function App() {
 
   <nav className="topnav" aria-label="Primary navigation">
     <a href="#overview">Overview</a>
+    <a href="#knowledge">Knowledge</a>
     <a href="#workflow">Workflow</a>
     <a href="#architecture">Architecture</a>
     <a
@@ -392,6 +443,109 @@ function App() {
       <span>Human approval</span>
     </div>
   </div>
+</section>
+
+<section className="knowledge-section" id="knowledge">
+  <div className="section-heading knowledge-heading">
+    <div>
+      <span className="section-number">KNOWLEDGE</span>
+
+      <div>
+        <h2>Enterprise knowledge base</h2>
+        <p>
+          Embedded enterprise capabilities used to ground agent planning
+          and execution.
+        </p>
+      </div>
+    </div>
+
+    <div className="knowledge-count">
+      <strong>{knowledgeDocuments.length}</strong>
+      <span>documents</span>
+    </div>
+  </div>
+
+  {loadingKnowledge ? (
+    <div className="knowledge-loading">
+      Loading enterprise knowledge...
+    </div>
+  ) : (
+    <div className="knowledge-grid">
+      {[...knowledgeDocuments]
+  .sort((a, b) => {
+    const order: Record<string, number> = {
+      Salesforce: 0,
+      SAP: 1,
+      Slack: 2,
+    };
+
+    return (
+      (order[a.source_name] ?? 99) -
+      (order[b.source_name] ?? 99)
+    );
+  })
+  .map((document) => {
+        const actionType = String(
+          document.metadata.action_type ?? "READ",
+        ).toLowerCase();
+
+        const requiresApproval =
+          document.metadata.requires_approval === true;
+
+        return (
+          <button
+            className="knowledge-card"
+            key={document.document_id}
+            type="button"
+            onClick={() => openSource(document.document_id)}
+            disabled={loadingSource}
+          >
+            <div className="knowledge-card-top">
+              <div className="knowledge-system">
+                <span className="knowledge-system-dot" />
+                {document.source_name}
+              </div>
+
+              <span className={`action-badge action-${actionType}`}>
+                {String(document.metadata.action_type ?? "READ")}
+              </span>
+            </div>
+
+            <h3>{document.title}</h3>
+
+            <code className="knowledge-tool">
+              {String(document.metadata.tool_name ?? "enterprise.tool")}
+            </code>
+
+            <div className="knowledge-card-footer">
+              <span
+                className={
+                  document.embedded
+                    ? "knowledge-health healthy"
+                    : "knowledge-health"
+                }
+              >
+                <span className="knowledge-health-dot" />
+                {document.embedded ? "Embedded" : "Not embedded"}
+              </span>
+
+              <span
+                className={
+                  requiresApproval
+                    ? "knowledge-approval required"
+                    : "knowledge-approval"
+                }
+              >
+                {requiresApproval
+                  ? "Approval required"
+                  : "No approval"}
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  )}
 </section>
 
         {error && (
