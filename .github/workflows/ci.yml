@@ -34,6 +34,7 @@ jobs:
       CHECKPOINT_DB_URI: postgresql://postgres:postgres@localhost:5432/enterprise_ai
       PLANNER_MODE: mock
       ENVIRONMENT: test
+      SALESFORCE_MODE: mock
 
     steps:
       - name: Checkout repository

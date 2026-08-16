@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-5"
     planner_mode: str = "mock"
+    salesforce_mode: str = "mock"
+
+    mule_experience_api_url: str = ""
+    mule_request_timeout_seconds: float = 15.0
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
